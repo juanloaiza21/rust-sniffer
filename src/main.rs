@@ -7,7 +7,7 @@ mod error;
 
 fn main() -> Result<(), CaptureError> {
     env_logger::init();
-    start_capture("enp1s0")?;
+    start_capture("lo")?;
     Ok(())
 }
 
