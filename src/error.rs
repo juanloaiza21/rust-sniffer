@@ -1,11 +1,21 @@
-use thiserror::Error;
-use pcap::Error as PcapError;
+use std::error::Error;
+use std::fmt;
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum CaptureError {
-    #[error("Network interface not found: {0}")]
+    PcapError(String),
     InterfaceNotFound(String),
-
-    #[error("Pcap error: {0}")]
-    PcapError(#[from] PcapError),
+    ParseError(String),
 }
+
+impl fmt::Display for CaptureError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CaptureError::PcapError(e) => write!(f, "PCap error: {}", e),
+            CaptureError::InterfaceNotFound(name) => write!(f, "Interface not found: {}", name),
+            CaptureError::ParseError(e) => write!(f, "Parse error: {}", e),
+        }
+    }
+}
+
+impl Error for CaptureError {}

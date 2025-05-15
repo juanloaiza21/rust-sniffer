@@ -1,10 +1,14 @@
 use error::CaptureError;
 use pcap::{Capture, Device};
 use std::{thread, time::Duration};
-use log::{info, warn, error};
+use log::{info, warn, error, debug};
 
 mod error;
+mod protocols;  // New module for protocol parsing
 
+use protocols::ethernet::EthernetFrame;
+use protocols::frame_control::FrameControlInfo;
+//TODO fix the interface name to automatic
 fn main() -> Result<(), CaptureError> {
     env_logger::init();
     start_capture("lo")?;
@@ -15,18 +19,18 @@ pub fn start_capture(interface_name: &str) -> Result<(), CaptureError> {
     info!("Starting packet capture on '{}'", interface_name);
 
     let iface = Device::list()
-        .map_err(CaptureError::PcapError)?
+        .map_err(|e| CaptureError::PcapError(e.to_string()))?
         .into_iter()
         .find(|d| d.name == interface_name)
         .ok_or_else(|| CaptureError::InterfaceNotFound(interface_name.to_string()))?;
 
     info!("Interface found: {}", iface.name);
 
-    let mut cap = Capture::from_device(iface).map_err(CaptureError::PcapError)?
+    let mut cap = Capture::from_device(iface).map_err(|e| CaptureError::PcapError(e.to_string()))?
         .promisc(true)
         .immediate_mode(true)
-        .open().map_err(CaptureError::PcapError)?
-        .setnonblock().map_err(CaptureError::PcapError)?;
+        .open().map_err(|e| CaptureError::PcapError(e.to_string()))?
+        .setnonblock().map_err(|e| CaptureError::PcapError(e.to_string()))?;
 
     let mut count = 0;
     let mut last_stats = None;
@@ -53,6 +57,12 @@ pub fn start_capture(interface_name: &str) -> Result<(), CaptureError> {
                     packet.header.ts.tv_sec,
                     packet.header.ts.tv_usec
                 );
+                
+                // Parse frame control information from the packet
+                if let Some(frame_control) = analyze_frame_control(&packet.data) {
+                    info!("Frame Control: {}", frame_control);
+                }
+                
                 count += 1;
             }
             Err(pcap::Error::PcapError(e)) if e.contains("Packets are not available") => {
@@ -78,4 +88,21 @@ pub fn start_capture(interface_name: &str) -> Result<(), CaptureError> {
 
     info!("Capture completed. Total packets: {}", count);
     Ok(())
+}
+
+/// Analyzes a packet's raw data and extracts frame control information
+fn analyze_frame_control(data: &[u8]) -> Option<FrameControlInfo> {
+    if data.len() < 14 {  // Minimum Ethernet frame size
+        debug!("Packet too small to contain valid frame control data");
+        return None;
+    }
+    
+    // Try to parse as Ethernet frame
+    match EthernetFrame::parse(data) {
+        Ok(eth_frame) => Some(eth_frame.get_frame_control()),
+        Err(e) => {
+            debug!("Failed to parse frame control: {}", e);
+            None
+        }
+    }
 }
