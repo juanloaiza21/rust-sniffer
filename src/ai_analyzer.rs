@@ -82,7 +82,7 @@ impl AIAnalyzer {
             .await?;
         
         // Parse the AI response
-        let response_text = &response.choices[0].text;
+        let response_text = response.to_string().await?;
         let security_analysis: SecurityAnalysis = serde_json::from_str(response_text)?;
         
         Ok(security_analysis)
