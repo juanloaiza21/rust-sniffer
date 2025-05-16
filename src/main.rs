@@ -23,7 +23,6 @@ use ai_analyzer::AIAnalyzer;
 async fn main() -> Result<(), CaptureError> {
     let interface_name = "enp4s0"; // Replace with your network interface name
     env_logger::init();
-    info!("Starting packet capture on '{}'", interface_name);
     print!("Select the capture mode (1: Basic, 2: AI): ");
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {
