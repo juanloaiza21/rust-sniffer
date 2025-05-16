@@ -1,21 +1,34 @@
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt;
 
 #[derive(Debug)]
 pub enum CaptureError {
-    PcapError(String),
-    InterfaceNotFound(String),
+    NetworkError(String),
     ParseError(String),
+    InputError(String),
+    PcapError(String),           // Added for PCAP-related errors
+    InterfaceNotFound(String),   // Added for interface not found errors
+    Other(String),
 }
 
 impl fmt::Display for CaptureError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CaptureError::PcapError(e) => write!(f, "PCap error: {}", e),
-            CaptureError::InterfaceNotFound(name) => write!(f, "Interface not found: {}", name),
-            CaptureError::ParseError(e) => write!(f, "Parse error: {}", e),
+            CaptureError::NetworkError(msg) => write!(f, "Network error: {}", msg),
+            CaptureError::ParseError(msg) => write!(f, "Parse error: {}", msg),
+            CaptureError::InputError(msg) => write!(f, "Input error: {}", msg),
+            CaptureError::PcapError(msg) => write!(f, "PCAP error: {}", msg),
+            CaptureError::InterfaceNotFound(msg) => write!(f, "Interface not found: {}", msg),
+            CaptureError::Other(msg) => write!(f, "Error: {}", msg),
         }
     }
 }
 
-impl Error for CaptureError {}
+impl StdError for CaptureError {}
+
+// Implement From<Box<dyn StdError>> for CaptureError
+impl From<Box<dyn StdError>> for CaptureError {
+    fn from(error: Box<dyn StdError>) -> Self {
+        CaptureError::Other(error.to_string())
+    }
+}
