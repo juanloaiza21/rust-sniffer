@@ -8,3 +8,8 @@ pcap = "1"
 thiserror = "1"
 log = "0.4"
 env_logger = "0.10"
+deepseek-api = "0.1.1"
+serde = "1.0.219"
+serde_json = "1.0.140"
+tokio = { version = "1.28", features = ["full", "rt-multi-thread"] }
+reqwest = { version = "0.11", features = ["json"] }
